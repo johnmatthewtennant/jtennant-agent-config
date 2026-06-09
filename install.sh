@@ -18,8 +18,8 @@ brew tap johnmatthewtennant/tap >/dev/null
 brew_ensure reminderkit-cli
 brew_ensure notekit-cli
 brew upgrade reminderkit-cli notekit-cli || true
-reminderkit install-skill --claude
-notekit install-skill --claude
+reminderkit install-skill --claude --force
+notekit install-skill --claude --force
 
 if [ -d "$dir/.git" ]; then
   git -C "$dir" pull --ff-only
