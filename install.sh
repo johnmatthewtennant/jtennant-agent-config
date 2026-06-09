@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo="${JTENNANT_AGENT_CONFIG_REPO:-https://github.com/johnmatthewtennant/jtennant-agent-config.git}"
-dir="${JTENNANT_AGENT_CONFIG_DIR:-$HOME/.local/share/jtennant-agent-config}"
+dir="${JTENNANT_AGENT_CONFIG_DIR:-$HOME/Development/jtennant-agent-config}"
 skills_dir="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
 plugin="jtennant-agent-config"
 
