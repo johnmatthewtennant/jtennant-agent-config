@@ -7,6 +7,10 @@ description: Search and inspect Apple Mail on macOS using no new dependencies. U
 
 Use Apple Mail's local files directly for read-only search. This avoids AppleScript slowness and avoids new auth.
 
+## Prerequisites
+
+- The terminal or agent app running these commands needs macOS Full Disk Access to read `~/Library/Mail`.
+
 ## Data sources
 
 - Metadata index: `~/Library/Mail/V*/MailData/Envelope Index`
