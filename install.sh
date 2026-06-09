@@ -7,9 +7,18 @@ skills_dir="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
 
 need() { command -v "$1" >/dev/null || { echo "missing: $1" >&2; exit 1; }; }
 owned_link() { [ -L "$1" ] && case "$(readlink "$1")" in "$dir"/*) true;; *) false;; esac; }
+brew_ensure() { brew list --formula "$1" >/dev/null 2>&1 || brew install "johnmatthewtennant/tap/$1"; }
 
 need git
+need brew
 mkdir -p "$(dirname "$dir")" "$skills_dir"
+
+brew tap johnmatthewtennant/tap >/dev/null
+brew_ensure reminderkit-cli
+brew_ensure notekit-cli
+brew upgrade reminderkit-cli notekit-cli || true
+reminderkit install-skill --claude
+notekit install-skill --claude
 
 if [ -d "$dir/.git" ]; then
   git -C "$dir" pull --ff-only
