@@ -35,6 +35,7 @@ for skill in "$dir"/skills/*; do
   old="$skills_dir/$(basename "$skill")"
   owned_link "$old" && rm "$old"
 done
+[ -L "$skills_dir/mac-mail" ] && rm "$skills_dir/mac-mail"
 
 target="$skills_dir/$plugin"
 if [ -e "$target" ] || [ -L "$target" ]; then

@@ -1,9 +1,9 @@
 ---
-name: mac-mail
-description: Search and inspect Apple Mail on macOS using no new dependencies. Use this whenever the user asks to search Mac Mail, Apple Mail, local mail, email bodies, downloaded mail, .emlx files, Mail's Envelope Index, or wants to compare AppleScript, sqlite3, rg, rw-mail, Gmail, or Mail.app search approaches. Prefer this skill for read-only Mail search and diagnostics before using AppleScript or building a CLI.
+name: apple-mail
+description: Search and inspect Apple Mail on macOS using no new dependencies. Use this whenever the user asks to search Apple Mail, Mac Mail, local mail, email bodies, downloaded mail, .emlx files, Mail's Envelope Index, or wants to compare AppleScript, sqlite3, rg, rw-mail, Gmail, or Mail.app search approaches. Prefer this skill for read-only Mail search and diagnostics before using AppleScript or building a CLI.
 ---
 
-# Mac Mail local search
+# Apple Mail local search
 
 Use Apple Mail's local files directly for read-only search. This avoids AppleScript slowness and avoids new auth.
 
