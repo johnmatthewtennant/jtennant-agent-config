@@ -5,7 +5,7 @@ description: Control Google Chrome from Claude Code. Use for browsing, debugging
 
 # Browser control
 
-Use Chrome. Prefer a copied side-car profile plus CDP for automation. Use AppleScript for quick actions in the user's running Chrome.
+Use Chrome. Prefer a copied side-car profile plus CDP for automation. Use AppleScript only when CDP is not usable.
 
 ## Install
 
@@ -68,6 +68,8 @@ curl -s http://127.0.0.1:$PORT/json/protocol
 Open the target `webSocketDebuggerUrl` and send CDP messages. Useful domains: `Runtime`, `Page`, `DOM`, `Accessibility`, `Input`, `Network`.
 
 ## AppleScript for running Chrome
+
+Use this only when CDP is not usable.
 
 ```applescript
 tell application "Google Chrome"
