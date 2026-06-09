@@ -10,6 +10,7 @@ Use Apple Mail's local files directly for read-only search. This avoids AppleScr
 ## Prerequisites
 
 - The terminal or agent app running these commands needs macOS Full Disk Access to read `~/Library/Mail`.
+- To open the Full Disk Access settings pane: `open "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"`.
 
 ## Data sources
 
