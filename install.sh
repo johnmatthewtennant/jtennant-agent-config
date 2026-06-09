@@ -4,9 +4,10 @@ set -euo pipefail
 repo="${JTENNANT_AGENT_CONFIG_REPO:-https://github.com/johnmatthewtennant/jtennant-agent-config.git}"
 dir="${JTENNANT_AGENT_CONFIG_DIR:-$HOME/.local/share/jtennant-agent-config}"
 skills_dir="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
+plugin="jtennant-agent-config"
 
 need() { command -v "$1" >/dev/null || { echo "missing: $1" >&2; exit 1; }; }
-owned_link() { [ -L "$1" ] && case "$(readlink "$1")" in "$dir"/*) true;; *) false;; esac; }
+owned_link() { [ -L "$1" ] && case "$(readlink "$1")" in "$dir"|"$dir"/*) true;; *) false;; esac; }
 brew_ensure() { brew list --formula "$1" >/dev/null 2>&1 || brew install "johnmatthewtennant/tap/$1"; }
 
 need git
@@ -31,11 +32,13 @@ fi
 
 for skill in "$dir"/skills/*; do
   [ -d "$skill" ] || continue
-  name=$(basename "$skill")
-  target="$skills_dir/$name"
-  if [ -e "$target" ] || [ -L "$target" ]; then
-    if owned_link "$target"; then rm "$target"; else echo "skip: $name" >&2; continue; fi
-  fi
-  ln -s "$skill" "$target"
-  echo "skill: $name"
+  old="$skills_dir/$(basename "$skill")"
+  owned_link "$old" && rm "$old"
 done
+
+target="$skills_dir/$plugin"
+if [ -e "$target" ] || [ -L "$target" ]; then
+  if owned_link "$target"; then rm "$target"; else echo "skip plugin: $target exists" >&2; exit 1; fi
+fi
+ln -s "$dir" "$target"
+echo "plugin: $plugin"

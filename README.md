@@ -1,6 +1,6 @@
 # jtennant-agent-config
 
-Personal Claude Code skills and config.
+Personal Claude Code plugin with shared skills and setup.
 
 ## Install/update
 
@@ -8,6 +8,4 @@ Personal Claude Code skills and config.
 curl -fsSL https://raw.githubusercontent.com/johnmatthewtennant/jtennant-agent-config/main/install.sh | bash
 ```
 
-Clones to `~/.local/share/jtennant-agent-config` and symlinks skills into `~/.claude/skills`.
-
-Existing non-managed skills are skipped.
+Installs CLIs, runs their skill installers, clones to `~/.local/share/jtennant-agent-config`, and symlinks the plugin to `~/.claude/skills/jtennant-agent-config`.
