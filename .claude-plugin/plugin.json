@@ -2,5 +2,7 @@
   "name": "jtennant-agent-config",
   "version": "0.1.0",
   "description": "John Tennant shared Claude Code skills and config",
-  "author": "John Tennant"
+  "author": {
+    "name": "John Tennant"
+  }
 }
