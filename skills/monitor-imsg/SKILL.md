@@ -88,3 +88,15 @@ imsg send --chat-id <ROWID> --text "Agent: <reply>"
 ```
 
 Ignore monitor events that start with the agent prefix so the agent does not reply to itself.
+
+## Streaming vs polling clients
+
+Claude Code supports streaming via Monitor. Use the persistent Monitor shown above: each incoming message arrives as an event, and the agent may end its turn between messages.
+
+Non-streaming clients (Codex, Goose) have no Monitor tool. Run `imsg watch` as a foreground command instead; it blocks until messages arrive. If the harness enforces a command timeout, re-run it in a loop, passing the last seen rowid so repeated runs do not replay messages:
+
+```bash
+imsg watch --chat-id <ROWID> --since-rowid <N>
+```
+
+Non-streaming clients must NEVER END TURN WHILE WAITING FOR A MESSAGE. Otherwise the conversation stalls and the user's reply goes unanswered. Poll continuously: keep re-running the watch command until new input arrives, respond, then resume polling.
