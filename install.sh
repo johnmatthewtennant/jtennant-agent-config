@@ -24,6 +24,9 @@ mkdir -p "$(dirname "$dir")" "$claude_skills_dir" "$agents_skills_dir"
 
 export HOMEBREW_NO_AUTO_UPDATE=1
 brew tap johnmatthewtennant/tap >/dev/null
+# HOMEBREW_NO_AUTO_UPDATE skips tap refresh, so pull the tap ourselves or
+# upgrade never sees new releases
+git -C "$(brew --repository johnmatthewtennant/tap)" pull --ff-only --quiet || true
 brew_ensure reminderkit-cli
 brew_ensure notekit-cli
 brew upgrade reminderkit-cli notekit-cli || true
