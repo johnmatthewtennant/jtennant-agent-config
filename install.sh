@@ -30,9 +30,10 @@ git -C "$(brew --repository johnmatthewtennant/tap)" pull --ff-only --quiet || t
 brew_ensure reminderkit-cli
 brew_ensure notekit-cli
 brew upgrade reminderkit-cli notekit-cli || true
+# brew-prefixed paths so stale copies earlier on PATH can't run instead;
 # no target flag = install to both ~/.claude/skills and ~/.agents/skills
-reminderkit install-skill --force
-notekit install-skill --force
+"$(brew --prefix)/bin/reminderkit" install-skill --force
+"$(brew --prefix)/bin/notekit" install-skill --force
 
 if [ -d "$dir/.git" ]; then
   if git -C "$dir" rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
