@@ -22,11 +22,11 @@ need git
 need brew
 mkdir -p "$(dirname "$dir")" "$claude_skills_dir" "$agents_skills_dir"
 
+# Refresh Homebrew and all taps once up front so upgrades see new releases,
+# then disable per-command auto-update so the installs below stay fast.
+brew update || true
 export HOMEBREW_NO_AUTO_UPDATE=1
 brew tap johnmatthewtennant/tap >/dev/null
-# HOMEBREW_NO_AUTO_UPDATE skips tap refresh, so pull the tap ourselves or
-# upgrade never sees new releases
-git -C "$(brew --repository johnmatthewtennant/tap)" pull --ff-only --quiet || true
 brew_ensure reminderkit-cli
 brew_ensure notekit-cli
 brew upgrade reminderkit-cli notekit-cli || true
@@ -54,10 +54,12 @@ for skill in "$dir"/skills/*/; do
   link "${skill%/}" "$agents_skills_dir/$(basename "$skill")"
 done
 
-# prune links left behind by skills removed from the repo
-for l in "$agents_skills_dir"/*; do
-  [ -L "$l" ] && [ ! -e "$l" ] || continue
-  case "$(readlink "$l")" in "$dir"/skills/*) rm "$l" ;; esac
+# prune broken symlinks into the repo (skills removed/renamed, repo relocated)
+for d in "$claude_skills_dir" "$agents_skills_dir"; do
+  for l in "$d"/*; do
+    [ -L "$l" ] && [ ! -e "$l" ] || continue
+    case "$(readlink "$l")" in "$dir"|"$dir"/*) rm "$l" ;; esac
+  done
 done
 
 echo "claude plugin: $claude_skills_dir/$plugin"
