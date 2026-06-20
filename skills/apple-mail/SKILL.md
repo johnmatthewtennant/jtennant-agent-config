@@ -55,6 +55,15 @@ Common metadata filters:
 "$MAIL_FIND" sql "m.read = 0 and m.date_received >= strftime('%s','now','-7 days')" --limit 20
 ```
 
+Newer than a last-seen row id:
+
+```bash
+last_seen=12345
+"$MAIL_FIND" sql "m.rowid > $last_seen" --order received --limit 50
+```
+
+For polling, keep the largest returned `id` as the next `last_seen`. `--order received` is good enough for discovery because the filter is rowid-based; sort or process ids numerically if strict rowid order matters.
+
 ## Rowid primitives
 
 Use these after metadata/body search identifies relevant row ids:
