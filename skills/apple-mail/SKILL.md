@@ -40,12 +40,13 @@ MAIL_READ="${CLAUDE_SKILL_ROOT:-$(pwd)}/bin/mail-read"
 Thin wrappers preserve the native search shape and add the metadata users usually fetch next:
 
 ```bash
-"$MAIL_FIND" sql "s.subject like '%invoice%' collate nocase" --limit 50
+"$MAIL_FIND" describe
+"$MAIL_FIND" sql "s.subject like '%invoice%' collate nocase" --order-by "m.date_received desc" --limit 50
 "$MAIL_FIND" rg 'contract term' --limit 50
 rg -l 'project name' "$MAIL_ROOT" -g '*.emlx' | "$MAIL_FIND" paths
 ```
 
-`mail-find rg` returns raw `rg` path/line/text plus rowid, dates, sender, subject, mailbox, path, downloaded, and partial. `mail-find sql` runs a transparent metadata `WHERE` clause and adds path/download status. For anything unusual, use SQLite/`rg` directly.
+`mail-find describe` shows SQL aliases, output shape, and common columns. `mail-find rg` returns raw `rg` path/line/text plus rowid, dates, sender, subject, mailbox, path, downloaded, and partial. `mail-find sql` runs a transparent metadata `WHERE` clause with optional raw `--order-by` and adds path/download status. For anything unusual, use SQLite/`rg` directly.
 
 Common metadata filters:
 
@@ -59,10 +60,10 @@ Newer than a last-seen row id:
 
 ```bash
 last_seen=12345
-"$MAIL_FIND" sql "m.rowid > $last_seen" --order received --limit 50
+"$MAIL_FIND" sql "m.rowid > $last_seen" --order-by "m.rowid asc" --limit 50
 ```
 
-For polling, keep the largest returned `id` as the next `last_seen`. `--order received` is good enough for discovery because the filter is rowid-based; sort or process ids numerically if strict rowid order matters.
+For polling, keep the largest returned `id` as the next `last_seen`.
 
 ## Rowid primitives
 

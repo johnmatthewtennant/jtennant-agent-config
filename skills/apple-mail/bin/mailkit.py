@@ -261,10 +261,16 @@ def command_coverage(_: argparse.Namespace) -> None:
     )
 
 
+def reject_statement_clause(name: str, clause: str) -> None:
+    if ";" in clause:
+        raise SystemExit(f"{name} must be a single SQL clause, not a statement")
+
+
 def command_find_sql(args: argparse.Namespace) -> None:
+    reject_statement_clause("where", args.where)
+    reject_statement_clause("order-by", args.order_by)
     root = mail_root()
     con = connect(root)
-    order = "m.date_received desc" if args.order == "received" else "m.date_sent desc"
     rows = con.execute(
         f"""
         select m.rowid id
@@ -273,15 +279,49 @@ def command_find_sql(args: argparse.Namespace) -> None:
         left join addresses a on a.rowid = m.sender
         left join mailboxes mb on mb.rowid = m.mailbox
         where m.deleted = 0 and ({args.where})
-        order by {order}
+        order by {args.order_by}
         limit ?
         """,
         [args.limit],
     ).fetchall()
     ids = [int(r["id"]) for r in rows]
     meta = metadata(con, ids)
-    records = [row_record(root, meta, rowid, [{"source": "metadata", "where": args.where}]) for rowid in ids]
+    match = {"source": "metadata", "where": args.where, "order_by": args.order_by}
+    records = [row_record(root, meta, rowid, [match]) for rowid in ids]
     print_json(records)
+
+
+def command_find_describe(_: argparse.Namespace) -> None:
+    print("""mail-find sql uses these aliases:
+  m  messages
+  s  subjects       left join subjects s on s.rowid = m.subject
+  a  sender address left join addresses a on a.rowid = m.sender
+  mb mailbox        left join mailboxes mb on mb.rowid = m.mailbox
+
+Canonical output columns:
+  id, sent, received, sender_email, sender_name, subject, mailbox, read, flagged,
+  path, downloaded, partial, matches
+
+Canonical query shape:
+  select m.rowid id
+  from messages m
+  left join subjects s on s.rowid = m.subject
+  left join addresses a on a.rowid = m.sender
+  left join mailboxes mb on mb.rowid = m.mailbox
+  where m.deleted = 0 and (<where>)
+  order by <order-by>
+  limit ?
+
+Common columns:
+  m.rowid, m.date_sent, m.date_received, m.read, m.flagged, m.deleted
+  s.subject
+  a.address, a.comment
+  mb.url, mb.total_count, mb.unread_count
+
+Examples:
+  mail-find sql "m.read = 0" --order-by "m.date_received desc"
+  mail-find sql "m.rowid > 12345" --order-by "m.rowid asc"
+""")
 
 
 def command_find_rg(args: argparse.Namespace) -> None:
@@ -378,10 +418,13 @@ def build_find_parser(prog: str) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog=prog, description="Find Apple Mail candidate row ids")
     sub = parser.add_subparsers(dest="command", required=True)
 
+    describe_p = sub.add_parser("describe", help="show SQL aliases, output shape, and common columns")
+    describe_p.set_defaults(func=command_find_describe)
+
     sql_p = sub.add_parser("sql", help="run a metadata WHERE clause and return compact row records")
     sql_p.add_argument("where")
     sql_p.add_argument("--limit", type=int, default=50)
-    sql_p.add_argument("--order", choices=("sent", "received"), default="received")
+    sql_p.add_argument("--order-by", default="m.date_received desc")
     sql_p.set_defaults(func=command_find_sql)
 
     rg_p = sub.add_parser("rg", help="run rg over .emlx bodies and join hits to metadata")
