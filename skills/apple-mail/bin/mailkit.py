@@ -29,7 +29,7 @@ def mail_db(root: Path) -> Path:
 
 
 def connect(root: Path) -> sqlite3.Connection:
-    con = sqlite3.connect(f"file:{mail_db(root)}?mode=ro", uri=True)
+    con = sqlite3.connect(f"{mail_db(root).as_uri()}?mode=ro", uri=True)
     con.row_factory = sqlite3.Row
     return con
 
