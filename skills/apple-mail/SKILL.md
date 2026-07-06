@@ -1,6 +1,6 @@
 ---
 name: apple-mail
-description: Search and inspect Apple Mail on macOS using no new dependencies. Use for read-only Apple Mail, Mac Mail, local mail, email bodies, downloaded mail, .emlx files, Mail's Envelope Index, sqlite3, rg, or Mail.app search diagnostics. Do not use for sending or mutation.
+description: Search, inspect, or mutate Apple Mail on macOS using local files and Mail.app. Use for Apple Mail, Mac Mail, local mail, email bodies, downloaded mail, .emlx files, Mail's Envelope Index, sqlite3, rg, Mail.app search diagnostics, drafting, sending, moving, archiving, flagging, or marking messages read/unread.
 ---
 
 # Apple Mail local search
@@ -145,10 +145,14 @@ print({'indexed': indexed, 'local_total': full + partial, 'full': full, 'partial
 PY
 ```
 
+## Mutations
+
+For Apple Mail mutations, use Mail.app AppleScript, never mutate Mail SQLite. For targeted mutations, enumerate accounts and mailboxes first, then select the intended objects before mutating.
+
 ## Traps
 
 - On this Mac, `date_sent` and `date_received` are Unix timestamps. Do not add the Apple epoch unless verified.
 - `document_id` may be binary-ish and useless for locating files. Use `rowid -> **/Messages/<rowid>.emlx`.
 - Raw MIME contains HTML, quoted-printable, quoted thread history, duplicate parts, and encoding artifacts. Normalize before citing.
 - `.partial.emlx` can be enough for evidence, but absence from body files is not absence from Mail.
-- Never mutate Mail's SQLite database. For sending, deleting, moving, flagging, or marking read, use a safe tool, not this skill.
+- Never mutate Mail's SQLite database. Use Mail.app AppleScript or an account API for mutations.
