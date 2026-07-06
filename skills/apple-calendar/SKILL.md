@@ -8,3 +8,5 @@ Read Apple Calendar directly from the local SQLite DB at `~/Library/Group Contai
 Use `CalendarItem` joined to `Calendar` for events. Apple timestamps are seconds since `2001-01-01 00:00:00 UTC`.
 
 Write Apple Calendar events through Calendar.app AppleScript with `osascript`, for example `tell application "Calendar"` and `make new event at end of events of targetCalendar`.
+
+To target a specific account or calendar, enumerate Calendar.app calendars first, then select the intended calendar by unique name or UID before writing.
