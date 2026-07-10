@@ -15,23 +15,14 @@ Requires Full Disk Access for the terminal/agent app. If `~/Library/Mail` is emp
 open "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
 ```
 
-Set paths once:
-
-```bash
-MAIL_ROOT="$HOME/Library/Mail/$(ls "$HOME/Library/Mail" | grep '^V[0-9]' | sort -V | tail -1)"
-MAIL_DB="$MAIL_ROOT/MailData/Envelope Index"
-MAIL_FIND="${CLAUDE_SKILL_ROOT:-$(pwd)}/bin/mail-find"
-MAIL_READ="${CLAUDE_SKILL_ROOT:-$(pwd)}/bin/mail-read"
-```
-
 `bin/mail-find` wraps SQLite or `rg` and returns compact rowid records. `bin/mail-read` consumes rowids for metadata, normalized bodies, excerpts, packets, and coverage. Keep search strategy in the skill/agent; use helpers for stable rowid IO.
 
 ## What to search
 
-- SQLite metadata: `$MAIL_DB`
+- SQLite metadata: `~/Library/Mail/V*/MailData/Envelope Index`
   - Fast, complete for indexed mail, works even when bodies are not downloaded.
   - Use for sender, subject, date, read/flagged state, mailbox, labels, row ids.
-- Body files: `$MAIL_ROOT/**/*.emlx`
+- Body files: `~/Library/Mail/V*/**/*.emlx`
   - Includes `.partial.emlx` files. Partial files can contain useful text, but are best effort.
   - Use for downloaded bodies only.
 
@@ -40,10 +31,11 @@ MAIL_READ="${CLAUDE_SKILL_ROOT:-$(pwd)}/bin/mail-read"
 Thin wrappers preserve the native search shape and add the metadata users usually fetch next:
 
 ```bash
-"$MAIL_FIND" describe
-"$MAIL_FIND" sql "s.subject like '%invoice%' collate nocase" --order-by "m.date_received desc" --limit 50
-"$MAIL_FIND" rg 'contract term' --limit 50
-rg -l 'project name' "$MAIL_ROOT" -g '*.emlx' | "$MAIL_FIND" paths
+MAIL_ROOT="$HOME/Library/Mail/$(ls "$HOME/Library/Mail" | grep '^V[0-9]' | sort -V | tail -1)"
+"{{SKILL_DIR}}/bin/mail-find" describe
+"{{SKILL_DIR}}/bin/mail-find" sql "s.subject like '%invoice%' collate nocase" --order-by "m.date_received desc" --limit 50
+"{{SKILL_DIR}}/bin/mail-find" rg 'contract term' --limit 50
+rg -l 'project name' "$MAIL_ROOT" -g '*.emlx' | "{{SKILL_DIR}}/bin/mail-find" paths
 ```
 
 `mail-find describe` shows SQL aliases, output shape, and common columns. `mail-find rg` returns raw `rg` path/line/text plus rowid, dates, sender, subject, mailbox, path, downloaded, and partial. `mail-find sql` runs a transparent metadata `WHERE` clause with optional raw `--order-by` and adds path/download status. For anything unusual, use SQLite/`rg` directly.
@@ -51,16 +43,16 @@ rg -l 'project name' "$MAIL_ROOT" -g '*.emlx' | "$MAIL_FIND" paths
 Common metadata filters:
 
 ```bash
-"$MAIL_FIND" sql "m.date_received >= strftime('%s','now','-7 days')" --limit 20
-"$MAIL_FIND" sql "m.read = 0" --limit 20
-"$MAIL_FIND" sql "m.read = 0 and m.date_received >= strftime('%s','now','-7 days')" --limit 20
+"{{SKILL_DIR}}/bin/mail-find" sql "m.date_received >= strftime('%s','now','-7 days')" --limit 20
+"{{SKILL_DIR}}/bin/mail-find" sql "m.read = 0" --limit 20
+"{{SKILL_DIR}}/bin/mail-find" sql "m.read = 0 and m.date_received >= strftime('%s','now','-7 days')" --limit 20
 ```
 
 Newer than a last-seen row id:
 
 ```bash
-last_seen=12345
-"$MAIL_FIND" sql "m.rowid > $last_seen" --order-by "m.rowid asc" --limit 50
+LAST_SEEN=12345
+"{{SKILL_DIR}}/bin/mail-find" sql "m.rowid > $LAST_SEEN" --order-by "m.rowid asc" --limit 50
 ```
 
 For polling, keep the largest returned `id` as the next `last_seen`.
@@ -70,17 +62,19 @@ For polling, keep the largest returned `id` as the next `last_seen`.
 Use these after metadata/body search identifies relevant row ids:
 
 ```bash
-"$MAIL_READ" meta 12345 12346
-"$MAIL_READ" show 12345 --limit 8000
-"$MAIL_READ" excerpt 'contract term' 12345 12346 --context 500
-"$MAIL_READ" packet 12345 12346 --term 'contract term' > source-packet.md
-"$MAIL_READ" coverage
+"{{SKILL_DIR}}/bin/mail-read" meta 12345 12346
+"{{SKILL_DIR}}/bin/mail-read" show 12345 --limit 8000
+"{{SKILL_DIR}}/bin/mail-read" excerpt 'contract term' 12345 12346 --context 500
+"{{SKILL_DIR}}/bin/mail-read" packet 12345 12346 --term 'contract term' > source-packet.md
+"{{SKILL_DIR}}/bin/mail-read" coverage
 ```
 
 `mail-read` handles `.emlx` byte-count lines, MIME parts, transfer encodings, HTML noise, rowid-to-path mapping, and JSON/markdown output. It accepts `--ids-from -` for pipelines:
 
 ```bash
-"$MAIL_FIND" sql "s.subject like '%invoice%' collate nocase" | jq -r '.[].id' | "$MAIL_READ" packet --ids-from -
+"{{SKILL_DIR}}/bin/mail-find" sql "s.subject like '%invoice%' collate nocase" \
+  | jq -r '.[].id' \
+  | "{{SKILL_DIR}}/bin/mail-read" packet --ids-from -
 ```
 
 ## Source packet workflow
@@ -95,6 +89,8 @@ For evidence work:
 Useful targeted query for a date window plus people/subjects:
 
 ```bash
+MAIL_ROOT="$HOME/Library/Mail/$(ls "$HOME/Library/Mail" | grep '^V[0-9]' | sort -V | tail -1)"
+MAIL_DB="$MAIL_ROOT/MailData/Envelope Index"
 sqlite3 -readonly -header -csv "$MAIL_DB" <<'SQL'
 select m.rowid id,
        datetime(m.date_sent, 'unixepoch') sent,
@@ -113,19 +109,7 @@ order by m.date_sent;
 SQL
 ```
 
-## Labels and coverage
-
-Gmail labels are usually in `labels`, not `messages.mailbox`:
-
-```bash
-sqlite3 -readonly -header -column "$MAIL_DB" <<'SQL'
-select mb.rowid, mb.url, mb.total_count, mb.unread_count, count(l.message_id) label_count
-from mailboxes mb
-left join labels l on l.mailbox_id = mb.rowid
-group by mb.rowid
-order by max(mb.total_count, label_count) desc;
-SQL
-```
+## Coverage
 
 Check indexed mail versus downloaded bodies before claiming body-search completeness:
 
@@ -147,7 +131,57 @@ PY
 
 ## Mutations
 
-For Apple Mail mutations, use Mail.app AppleScript, never mutate Mail SQLite. For targeted mutations, enumerate accounts and mailboxes first, then select the intended objects before mutating.
+For Apple Mail mutations, use Mail.app APIs, never mutate Mail SQLite or `.emlx` files. Use AppleScript only for exact object deletion or inspection when no Mail AppIntent covers the operation.
+
+### Native reply composer
+
+Before running, verify the original message's row id, account/mailbox, sender, subject, and RFC Message-ID. Tell the user that Mail will open a compose window.
+
+```bash
+python3 {{SKILL_DIR}}/bin/mailkit.py \
+  reply-composer ORIGINAL_ROW_ID --body-file /path/to/reply.txt
+```
+
+This opens a verified native reply composer and leaves it open for review and Mail autosave. Do not run it when another composer with the same reply subject is open.
+
+### Send an open composer
+
+After the user explicitly approves sending, target the exact subject, recipient, and expected body:
+
+```bash
+python3 {{SKILL_DIR}}/bin/mailkit.py send-composer \
+  --subject 'Re: EXACT SUBJECT' \
+  --to 'recipient@example.com' \
+  --body-file /path/to/reply.txt
+```
+
+This clicks the unique enabled Send button in the matching Mail composer, then verifies that the composer closed, the draft disappeared, and a matching sent message was indexed.
+
+### Revise a reply
+
+Replace the composer rather than updating it in place:
+
+1. Record the stale autosaved draft's exact RFC Message-ID.
+2. Close the old composer, choosing Save if Mail asks.
+3. Open and verify the replacement with `reply-composer`.
+4. Delete the stale draft by exact Message-ID after the replacement verifies.
+5. Confirm exactly one replacement draft and no temporary Shortcut remain.
+
+```bash
+python3 {{SKILL_DIR}}/bin/mailkit.py \
+  reply-composer ORIGINAL_ROW_ID \
+  --body-file /path/to/revised-reply.txt \
+  --replace-draft-message-id '<STALE-DRAFT-RFC-MESSAGE-ID>'
+```
+
+### Save immediately
+
+Use only when the user wants an immediately persisted draft and accepts Mail's save confirmation UI:
+
+```bash
+python3 {{SKILL_DIR}}/bin/mailkit.py \
+  reply-draft ORIGINAL_ROW_ID --body-file /path/to/reply.txt
+```
 
 ## Traps
 
