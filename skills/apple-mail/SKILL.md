@@ -17,6 +17,24 @@ open "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
 
 `bin/mail-find` wraps SQLite or `rg` and returns compact rowid records. `bin/mail-read` consumes rowids for metadata, normalized bodies, excerpts, packets, and coverage. Keep search strategy in the skill/agent; use helpers for stable rowid IO.
 
+## Sync first
+
+Before any Apple Mail operation — search, read, verify, draft, send, delete, or move — force a background Mail sync. Do not foreground Mail just to sync.
+
+```bash
+osascript <<'APPLESCRIPT'
+tell application "Mail"
+  repeat with acct in accounts
+    try
+      synchronize with acct
+    end try
+  end repeat
+end tell
+APPLESCRIPT
+```
+
+After syncing, query Mail's Envelope Index or re-run the relevant helper. If waiting for a just-sent external confirmation email, allow a short delay after sync before checking the index.
+
 ## What to search
 
 - SQLite metadata: `~/Library/Mail/V*/MailData/Envelope Index`
