@@ -15,13 +15,29 @@ command -v agent-browser >/dev/null 2>&1 || brew install agent-browser
 
 ## Launch side-car Chrome
 
-Use the included helper. It makes a temporary copied profile, reaps abandoned
-ones first, starts Chrome, and prints the exact connection details as JSON.
+Create a temporary copied profile, then start Chrome with a unique CDP port.
 
 ```bash
-/Users/jtennant/.agents/skills/browser-control/scripts/agent-browser-sidecar launch
-# Example output:
-# {"port":34567,"session":"chrome-34567","profile_dir":"/tmp/agent-browser-profiles/chrome-cdp-34567.abcd12","pid":45678}
+PORT=$(python3 - <<'PY'
+import random
+print(random.randint(20000, 60999))
+PY
+)
+while curl -fsS "http://127.0.0.1:$PORT/json/version" >/dev/null 2>&1; do PORT=$((PORT + 1)); done
+PROFILE_DIR=$(mktemp -d "${TMPDIR:-/tmp}/chrome-cdp-$PORT.XXXXXX")
+rsync -a --ignore-errors \
+  --exclude='Singleton*' --exclude='lockfile' \
+  --exclude='*Cache*' --exclude='*GPUCache*' --exclude='*.log' \
+  "$HOME/Library/Application Support/Google/Chrome/" \
+  "$PROFILE_DIR/" 2>/dev/null || true
+
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  --remote-debugging-port="$PORT" \
+  --user-data-dir="$PROFILE_DIR" \
+  --no-first-run >"${TMPDIR:-/tmp}/chrome-cdp-$PORT.log" 2>&1 &
+
+sleep 3
+curl -s "http://127.0.0.1:$PORT/json/version"
 ```
 
 ## Control with agent-browser
@@ -29,26 +45,25 @@ ones first, starts Chrome, and prints the exact connection details as JSON.
 `agent-browser` uses CDP under the hood. Use a session name tied to the port.
 
 ```bash
-agent-browser --session "$SESSION" --cdp "$PORT" open https://example.com
-agent-browser --session "$SESSION" --cdp "$PORT" wait --load networkidle
-agent-browser --session "$SESSION" --cdp "$PORT" snapshot -i --json
-agent-browser --session "$SESSION" --cdp "$PORT" click @e1
-agent-browser --session "$SESSION" --cdp "$PORT" fill @e2 "text"
-agent-browser --session "$SESSION" --cdp "$PORT" eval --stdin <<'EOF'
+agent-browser --session chrome-$PORT --cdp $PORT open https://example.com
+agent-browser --session chrome-$PORT --cdp $PORT wait --load networkidle
+agent-browser --session chrome-$PORT --cdp $PORT snapshot -i --json
+agent-browser --session chrome-$PORT --cdp $PORT click @e1
+agent-browser --session chrome-$PORT --cdp $PORT fill @e2 "text"
+agent-browser --session chrome-$PORT --cdp $PORT eval --stdin <<'EOF'
 document.title
 EOF
 ```
 
 Prefer snapshots over screenshots. Use screenshots only for visual rendering or inaccessible content.
 
-## End a temporary side-car session
+## Clean up
 
-When the task is complete, close the side-car and remove its profile. Replace
-the port with the one printed by the launch step. This is also the fallback
-when a task ends before another browser launch gets a chance to reap it.
+After the final browser command, close the side-car and remove its temporary profile.
 
 ```bash
-/Users/jtennant/.agents/skills/browser-control/scripts/agent-browser-sidecar cleanup --port 34567
+pkill -f -- "--user-data-dir=$PROFILE_DIR" 2>/dev/null || true
+rm -rf "$PROFILE_DIR"
 ```
 
 ## Raw CDP fallback
@@ -63,8 +78,8 @@ Open the target `webSocketDebuggerUrl` and send CDP messages. Useful domains: `R
 
 ## Gotchas
 
-- Copy the real Chrome profile. Empty profiles cause setup noise. The helper creates the copy in the system temporary directory, reaping abandoned profiles whenever another side-car is launched.
-- Run the end-of-session cleanup after the final browser command. A shell exit trap is unsuitable here because browser-control commands run in separate shells.
+- Copy the real Chrome profile. Empty profiles cause setup noise.
+- Use a temporary profile and clean it up after the final browser command.
 - For a session that must survive across tasks, save only the necessary auth state with `agent-browser state save ~/.agent-browser/auth-<environment>-<account>.json`; do not preserve the whole browser profile.
 - Use a unique port and `--user-data-dir` per side-car.
 - Do not kill the user's main Chrome.
