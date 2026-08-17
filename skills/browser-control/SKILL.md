@@ -1,11 +1,11 @@
 ---
 name: browser-control
-description: Control Google Chrome or other Chromium-based browsers. Use for browsing, debugging, navigating, filling forms, screenshots, scraping, testing web apps, CDP, accessibility snapshots, JavaScript evaluation, or AppleScript control of Chrome.
+description: Control Google Chrome for browsing, debugging, navigation, form entry, screenshots, scraping, testing web apps, CDP, accessibility snapshots, and JavaScript evaluation.
 ---
 
 # Browser control
 
-Use Chrome. Prefer a copied, **temporary** side-car profile plus CDP for automation. Use AppleScript only when CDP is not usable.
+Use Google Chrome. Prefer a copied, **temporary** side-car profile plus CDP for automation.
 
 ## Install
 
@@ -60,20 +60,6 @@ curl -s http://127.0.0.1:$PORT/json/protocol
 ```
 
 Open the target `webSocketDebuggerUrl` and send CDP messages. Useful domains: `Runtime`, `Page`, `DOM`, `Accessibility`, `Input`, `Network`.
-
-## AppleScript for running Chrome
-
-Use this only when CDP is not usable.
-
-```applescript
-tell application "Google Chrome"
-  activate
-  open location "https://example.com"
-  execute javascript "document.title" in active tab of front window
-end tell
-```
-
-If JavaScript Apple Events fail, enable Chrome's **Allow JavaScript from Apple Events** and macOS Developer Tools access for the terminal.
 
 ## Gotchas
 
