@@ -1,6 +1,6 @@
-# jtennant-agent-config
+# jtennant-agent-config (migration bootstrap)
 
-Personal agent config with shared skills and setup, installed for both Claude Code and Codex.
+This former repository name is a compatibility bootstrap for existing installs. The public layer now lives in [`jtennant-agent-config-public`](https://github.com/johnmatthewtennant/jtennant-agent-config-public).
 
 ## Install/update
 
@@ -8,6 +8,10 @@ Personal agent config with shared skills and setup, installed for both Claude Co
 curl -fsSL https://raw.githubusercontent.com/johnmatthewtennant/jtennant-agent-config/main/install.sh | bash
 ```
 
-Installs CLIs and runs their skill installers (which target both `~/.claude/skills` and `~/.agents/skills`), clones to `~/Development/jtennant-agent-config`, symlinks the plugin to `~/.claude/skills/jtennant-agent-config` for Claude Code, and symlinks each skill into `~/.agents/skills/` for Codex.
+The legacy command remains supported and installs the new public repository. New installs should use:
 
-`make update` performs only the link refresh. It is intentionally safe for a layer updater to call repeatedly: it does not install Homebrew packages or pull Git.
+```bash
+curl -fsSL https://raw.githubusercontent.com/johnmatthewtennant/jtennant-agent-config-public/main/install.sh | bash
+```
+
+The migration bootstrap is deliberately kept available while existing users move to the new public repository.
